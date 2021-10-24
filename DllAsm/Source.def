@@ -1,4 +1,5 @@
 ;-------------------------------------------------------------------------
-LIBRARY DllAsm
-EXPORTS MyProc1
+LIBRARY Source
+EXPORTS DllEntry
+EXPORTS NalozFiltrAsm
 ;-------------------------------------------------------------------------
