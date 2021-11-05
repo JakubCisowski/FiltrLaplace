@@ -73,7 +73,7 @@ namespace InterfejsUzytkownikaCs
             else
             {
                 int wynik = 0;
-                await SourceCs.WywolywanieAlgorytmow.WywolajAlgorytmCs(bitmapaBezHeadera, iloscWatkow);
+                wynik = await SourceCs.WywolywanieAlgorytmow.WywolajAlgorytmCpp(bitmapaBezHeadera, iloscWatkow);
                 MessageBox.Show($"{wynik.ToString()}");
             }
         }

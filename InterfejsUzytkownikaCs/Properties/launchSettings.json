@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "InterfejsUzytkownikaCs": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

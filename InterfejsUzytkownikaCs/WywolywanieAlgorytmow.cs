@@ -10,7 +10,7 @@ namespace SourceCs
         [DllImport(@"C:\Programowanie\Studia\JA\FiltrLaplace\x64\Debug\SourceCpp.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern int NalozFiltrCpp(IntPtr bitmapaTablicaBajtow, int dlugoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
-        public static async Task<int> WywolajAlgorytmCs(byte[] bitmapaTablicaBajtow, int iloscWatkow)
+        public static async Task<int> WywolajAlgorytmCpp(byte[] bitmapaTablicaBajtow, int iloscWatkow)
         {
             int indeks = 0;
             // Kalkulujemy ilosc bajtow na jeden watek.
