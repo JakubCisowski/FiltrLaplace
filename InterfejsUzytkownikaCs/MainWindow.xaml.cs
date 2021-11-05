@@ -22,14 +22,14 @@ namespace InterfejsUzytkownikaCs
 
         #region OBSŁUGA_CHECKBOXÓW
 
-        private void WyborCsCheckbox_Zaznaczone(object sender, RoutedEventArgs e)
+        private void WyborCppCheckbox_Zaznaczone(object sender, RoutedEventArgs e)
         {
             // Odznaczamy asm.
             WyborAsmCheckbox.IsChecked = false;
             czyAsembler = false;
         }
 
-        private void WyborCsCheckbox_Odznaczone(object sender, RoutedEventArgs e)
+        private void WyborCppCheckbox_Odznaczone(object sender, RoutedEventArgs e)
         {
             // Zaznaczamy asm.
             WyborAsmCheckbox.IsChecked = true;
@@ -39,14 +39,14 @@ namespace InterfejsUzytkownikaCs
         private void WyborAsmCheckbox_Zaznaczone(object sender, RoutedEventArgs e)
         {
             // Odznaczamy C#.
-            WyborCsCheckbox.IsChecked = false;
+            WyborCppCheckbox.IsChecked = false;
             czyAsembler = true;
         }
 
         private void WyborAsmCheckbox_Odznaczone(object sender, RoutedEventArgs e)
         {
             // Zaznaczamy C#.
-            WyborCsCheckbox.IsChecked = true;
+            WyborCppCheckbox.IsChecked = true;
             czyAsembler = false;
         }
 
@@ -66,11 +66,15 @@ namespace InterfejsUzytkownikaCs
 
             if (czyAsembler)
             {
-                await SourceCs.WywolywanieAlgorytmow.WywolajAlgorytmAsm(bitmapaBezHeadera, iloscWatkow);
+                int wynik = 0;
+                wynik = await SourceCs.WywolywanieAlgorytmow.WywolajAlgorytmAsm(bitmapaBezHeadera, iloscWatkow);
+                MessageBox.Show($"{wynik.ToString()}");
             }
             else
             {
+                int wynik = 0;
                 await SourceCs.WywolywanieAlgorytmow.WywolajAlgorytmCs(bitmapaBezHeadera, iloscWatkow);
+                MessageBox.Show($"{wynik.ToString()}");
             }
         }
 

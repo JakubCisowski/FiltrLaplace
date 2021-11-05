@@ -9,7 +9,8 @@
     <Grid Background="NavajoWhite">
         <Grid.RowDefinitions>
             <RowDefinition Height="2*" />
-            <RowDefinition Height="*" /> <!-- 7* -->
+            <RowDefinition Height="*" />
+            <!-- 7* -->
             <RowDefinition Height="*" />
             <RowDefinition Height="*" />
             <RowDefinition Height="2*" />
@@ -46,8 +47,8 @@
                 <TextBox x:Name="ThreadCountBox" FontSize="11" Margin="00,0,0,0" VerticalAlignment="Center" Width="100" Text="1" />
             </StackPanel>
 
-            <CheckBox x:Name="WyborCsCheckbox" Grid.Column="1" Grid.Row="0" Content="Wywołaj w C#"  FontSize="12" Padding="2" IsThreeState="False" VerticalAlignment="Center"
-				Checked="WyborCsCheckbox_Zaznaczone" Unchecked="WyborCsCheckbox_Odznaczone" />
+            <CheckBox x:Name="WyborCppCheckbox" Grid.Column="1" Grid.Row="0" Content="Wywołaj w C++"  FontSize="12" Padding="2" IsThreeState="False" VerticalAlignment="Center"
+				Checked="WyborCppCheckbox_Zaznaczone" Unchecked="WyborCppCheckbox_Odznaczone" />
 
             <CheckBox x:Name="WyborAsmCheckbox" Grid.Column="2" Grid.Row="0" Content="Wywołaj w ASM (x64)" FontSize="12" Padding="2" IsThreeState="False" VerticalAlignment="Center"
 				Checked="WyborAsmCheckbox_Zaznaczone" Unchecked="WyborAsmCheckbox_Odznaczone" />

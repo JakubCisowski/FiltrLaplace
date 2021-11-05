@@ -7,7 +7,10 @@ namespace SourceCs
 {
     public class WywolywanieAlgorytmow
     {
-        public static async Task<byte[]> WywolajAlgorytmCs(byte[] bitmapaTablicaBajtow, int iloscWatkow)
+        [DllImport(@"C:\Programowanie\Studia\JA\FiltrLaplace\x64\Debug\SourceCpp.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern int NalozFiltrCpp(IntPtr bitmapaTablicaBajtow, int dlugoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
+
+        public static async Task<int> WywolajAlgorytmCs(byte[] bitmapaTablicaBajtow, int iloscWatkow)
         {
             int indeks = 0;
             // Kalkulujemy ilosc bajtow na jeden watek.
@@ -38,7 +41,7 @@ namespace SourceCs
                     fixed (byte* wskaznikNaTabliceBajtow = &bitmapaTablicaBajtow[0])
                     {
                         IntPtr wskaznik = new IntPtr(wskaznikNaTabliceBajtow);
-                        Task<IntPtr> taskWTymWatku = Task.Run(() => Algorytm.NalozFiltrCs(wskaznik, bitmapaTablicaBajtow.Length, indeksStartowy, ileIndeksowFiltrowac));
+                        Task<int> taskWTymWatku = Task.Run(() => NalozFiltrCpp(wskaznik, bitmapaTablicaBajtow.Length, indeksStartowy, ileIndeksowFiltrowac));
                         listaWatkow.Add(taskWTymWatku);
                     }
                 }
@@ -46,15 +49,17 @@ namespace SourceCs
 
             await Task.WhenAll(listaWatkow);
 
-            // Póki co losowy wynik, póżniej trzeba będzie połączyć rezultaty z wątków.
-            return new byte[] { 0, 1, 2, 3, 4, 5 };
+            int trzeciBajtWTablicy = ((Task<int>)listaWatkow[0]).Result;
+
+            // Tymczasowo, póżniej trzeba będzie połączyć rezultaty z wątków.
+            return trzeciBajtWTablicy;
         }
 
         // Dynamicznie - import dll z algorytmem w asm.
-        [DllImport(@"C:\Programowanie\Studia\JA\FiltrLaplace\x64\Debug\ProjektJA.Asm.dll")]
-        public static extern IntPtr NalozFiltrAsm(IntPtr bitmapaTablicaBajtow, int dlugoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
+        [DllImport(@"C:\Programowanie\Studia\JA\FiltrLaplace\x64\Debug\DllAsm.dll")]
+        public static extern int NalozFiltrAsm(IntPtr bitmapaTablicaBajtow, int dlugoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
-        public static async Task<byte[]> WywolajAlgorytmAsm(byte[] bitmapaTablicaBajtow, int iloscWatkow)
+        public static async Task<int> WywolajAlgorytmAsm(byte[] bitmapaTablicaBajtow, int iloscWatkow)
         {
             int indeks = 0;
             // Kalkulujemy ilosc bajtow na jeden watek.
@@ -85,7 +90,7 @@ namespace SourceCs
                     fixed (byte* wskaznikNaTabliceBajtow = &bitmapaTablicaBajtow[0])
                     {
                         IntPtr wskaznik = new IntPtr(wskaznikNaTabliceBajtow);
-                        Task<IntPtr> taskWTymWatku = Task.Run(() => NalozFiltrAsm(wskaznik, bitmapaTablicaBajtow.Length, indeksStartowy, ileIndeksowFiltrowac));
+                        Task<int> taskWTymWatku = Task.Run(() => NalozFiltrAsm(wskaznik, bitmapaTablicaBajtow.Length, indeksStartowy, ileIndeksowFiltrowac));
                         listaWatkow.Add(taskWTymWatku);
                     }
                 }
@@ -93,8 +98,10 @@ namespace SourceCs
 
             await Task.WhenAll(listaWatkow);
 
-            // Póki co losowy wynik, póżniej trzeba będzie połączyć rezultaty z wątków.
-            return new byte[] { 0, 1, 2, 3, 4, 5 };
+            int trzeciBajtWTablicy = ((Task<int>)listaWatkow[0]).Result;
+
+            // Tymczasowo, póżniej trzeba będzie połączyć rezultaty z wątków.
+            return trzeciBajtWTablicy;
         }
     }
 }
