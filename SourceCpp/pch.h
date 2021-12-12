@@ -9,7 +9,6 @@
 
 // add headers that you want to pre-compile here
 #include "framework.h"
-#include "Algorytm.h"
 #include <Windows.h> // for __stdcall
 
 #endif //PCH_H
