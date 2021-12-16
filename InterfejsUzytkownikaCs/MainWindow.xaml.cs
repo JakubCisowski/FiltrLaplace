@@ -70,11 +70,13 @@ namespace InterfejsUzytkownikaCs
 
 			byte[] wynik = czyAsembler ? await WywolywanieAlgorytmow.WywolajAlgorytmAsm(bitmapaTablicaBajtow, iloscWatkow) : await WywolywanieAlgorytmow.WywolajAlgorytmCpp(bitmapaTablicaBajtow, iloscWatkow);
 
+#if DEBUG
 			File.WriteAllBytes("DebugOutput.bmp", wynik);
 
 			string debugText = string.Join('\n', wynik);
 
 			File.WriteAllText("DebugText.txt", debugText);
+#endif
 		}
 
 		private void PrzegladajPlikiPrzycisk_Click(object sender, RoutedEventArgs e)
