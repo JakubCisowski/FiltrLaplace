@@ -12,8 +12,15 @@ PrzesuniecieZnakow BYTE 16 DUP (10000000y)	; Znak znajduje się na pierwszym bic
 ; Kod źródłowy procedur
 
 DllEntry PROC hInstDLL:DWORD, reason:DWORD, reserved1:DWORD
-mov	eax, 1 
-ret
+; Procedura wywoływana automatycznie przez środowisko w momencie pierwszego wejścia do DLL.
+; Używamy jej, by zainicjalizować i zsumować maski zanim algorytm zostanie wywołany.
+
+CALL InicjalizujMaski
+CALL SumujMaski
+
+MOV	EAX, 1
+RET
+
 DllEntry ENDP
 
 SumujMaski PROC
@@ -163,8 +170,6 @@ XOR R8, R8
 XOR R9, R9
 JMP STARTGLOWNEJPETLI
 STARTGLOWNEJPETLI:
-CALL InicjalizujMaski
-CALL SumujMaski
 MOV R8, QWORD PTR [RSP+64]	; R8 = i
 GLOWNAPETLA:		
 MOV R9, QWORD PTR [RSP+56]
@@ -174,7 +179,7 @@ MOV RAX, R8	; lewa krawędź bitmapy - RAX = RAX / RCX, RDX = RAX % RCX (pomijam
 XOR RDX, RDX
 MOV RCX, QWORD PTR [RSP+56]
 DIV RCX
-cmp RDX, 0
+CMP RDX, 0
 JE KONIECGLOWNEJPETLI
 MOV RCX, QWORD PTR [RSP+48] ; ostatni rząd bitmapy (pomijamy)
 SUB RCX, QWORD PTR [RSP+56]
@@ -188,83 +193,56 @@ MOV RCX, QWORD PTR [RSP+56]
 DIV RCX
 CMP RDX, 0	
 JE KONIECGLOWNEJPETLI
-
 XOR R9, R9
-
 PETLAZEWNETRZNA:		; R9 = y
 XOR R10, R10
 CMP R9, 3
 JE KONIECPODWOJNEJPETLI
 JMP PETLAWEWNETRZNA
-
 PETLAWEWNETRZNA:		; R10 = x
 MOV RCX, R10
 DEC RCX
 IMUL RCX, 3
-
 MOV RAX, R9
 DEC RAX
 IMUL RAX, QWORD PTR [RSP+56]	; szerokosc bitmapy
-
 ADD RCX, RAX
 ADD RCX, R8
-
 MOV RDX, R9
 IMUL RDX, 3
 ADD RDX, R10
-
 MOV AL, BYTE PTR [R11 + RCX]	; R11 - wskaźnik na wejściową tablicę, RCX zawiera obliczony indeks piksela
-
 MOV BYTE PTR [R13 + RDX], AL	; R13 - wskaźnik na tablicę R, RDX zawiera obliczony indeks w tej tablicy
-
 INC RCX	
-
 MOV AL, BYTE PTR [R11 + RCX]
-
 MOV BYTE PTR [R14 + RDX], AL	; R14 - wskaźnik na tablicę G
-
 INC RCX
-
 MOV AL, BYTE PTR [R11 + RCX]
-
 MOV BYTE PTR [R15 + RDX], AL	; R15 - wskaźnik na tablicę B
-
 INC R10
 CMP R10, 3
 JNE PETLAWEWNETRZNA
-
 INC R9
 JMP PETLAZEWNETRZNA
-
 KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela znajdują się w dolnym bajcie rejestru RAX (->AL)
-
 MOV RCX, R13
 CALL ObliczNowaWartoscPiksela
-
 MOV RDX, R8
 SUB RDX, QWORD PTR [RSP+64]
-
 MOV BYTE PTR [R12 + RDX], AL
-
 MOV RCX, R14
 CALL ObliczNowaWartoscPiksela
-
 MOV RDX, R8
 SUB RDX, QWORD PTR [RSP+64]
 INC RDX
-
 MOV BYTE PTR [R12 + RDX], AL
-
 MOV RCX, R15
 CALL ObliczNowaWartoscPiksela
-
 MOV RDX, R8
 SUB RDX, QWORD PTR [RSP+64]
 INC RDX
 INC RDX
-
 MOV BYTE PTR [R12 + RDX], AL
-
 JMP KONIECGLOWNEJPETLI
 KONIECGLOWNEJPETLI:
 ADD R8, 3

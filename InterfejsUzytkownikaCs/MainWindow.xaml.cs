@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using SourceCs;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
@@ -13,6 +14,8 @@ namespace InterfejsUzytkownikaCs
 		private string sciezkaDoPliku;
 
 		private byte[] bitmapaTablicaBajtow;
+
+		private byte[] wynikAlgorytmu;
 
 		public MainWindow()
 		{
@@ -68,12 +71,26 @@ namespace InterfejsUzytkownikaCs
 				return;
 			}
 
+			var stoper = new Stopwatch();
+
+			stoper.Start();
+
 			byte[] wynik = czyAsembler ? await WywolywanieAlgorytmow.WywolajAlgorytmAsm(bitmapaTablicaBajtow, iloscWatkow) : await WywolywanieAlgorytmow.WywolajAlgorytmCpp(bitmapaTablicaBajtow, iloscWatkow);
 
-#if DEBUG
-			File.WriteAllBytes("DebugOutput.bmp", wynik);
+			stoper.Stop();
 
-			string debugText = string.Join('\n', wynik);
+			string czasWykonaniaAlgorytmu = $"Czas wykorzystany przez algorytm {(czyAsembler ? "ASM" : "C++")} na {iloscWatkow} wątkach: {stoper.Elapsed.Seconds}s {stoper.Elapsed.Milliseconds}ms";
+
+			WykorzystanyCzasBlock.Text = czasWykonaniaAlgorytmu;
+
+			ZapiszBitmapePrzycisk.IsEnabled = true;
+
+			wynikAlgorytmu = wynik;
+
+#if DEBUG
+			File.WriteAllBytes("DebugOutput.bmp", wynikAlgorytmu);
+
+			string debugText = string.Join('\n', wynikAlgorytmu);
 
 			File.WriteAllText("DebugText.txt", debugText);
 #endif
@@ -97,13 +114,35 @@ namespace InterfejsUzytkownikaCs
 					return;
 				}
 
-				BitmapyPanel.Children.Clear();
 				SciezkaDoPlikuBox.Text = nazwaPliku;
 				sciezkaDoPliku = nazwaPliku;
+				WykorzystanyCzasBlock.Text = "Tutaj pojawi się czas wykorzystany przez algorytm";
+				ZapiszBitmapePrzycisk.IsEnabled = false;
 
 				bitmapaTablicaBajtow = CzytnikPlikow.PrzeczytajBitmapeZPliku(sciezkaDoPliku);
 
 				FiltrujBitmapePrzycisk.IsEnabled = true;
+			}
+		}
+
+		private void ZapiszBitmapePrzycisk_Click(object sender, RoutedEventArgs e)
+		{
+			var dialog = new SaveFileDialog()
+			{
+				Filter = "Bitmap files (*.bmp)|*.bmp|All files (*.*)|*.*",
+				InitialDirectory = Directory.GetCurrentDirectory()
+			};
+
+			if (dialog.ShowDialog() == true)
+			{
+				var nazwaPliku = dialog.FileName;
+
+				if (Path.GetExtension(nazwaPliku) != ".bmp")
+				{
+					nazwaPliku += ".bmp";
+				}
+
+				File.WriteAllBytes(nazwaPliku, wynikAlgorytmu);
 			}
 		}
 	}
