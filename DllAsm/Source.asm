@@ -30,13 +30,13 @@ PUSH RAX
 PUSH RDX
 XOR RDX, RDX
 ;! Wykorzystane instrukcje wektorowe - MOVQ (MMX), PSADBW (SSE2)
-MOVQ xmm0, QWORD PTR [Maski]
+MOVQ XMM0, QWORD PTR [Maski]
 MOVSX EAX, BYTE PTR [Maski+8]
-MOVDQU xmm2, xmmword ptr [PrzesuniecieZnakow]
-PXOR xmm0, xmm2
-PXOR xmm1, xmm1
-PSADBW xmm1, xmm0
-MOVD EDX, xmm1
+MOVDQU XMM2, XMMWORD PTR [PrzesuniecieZnakow]
+PXOR XMM0, XMM2
+PXOR XMM1, XMM1
+PSADBW XMM1, XMM0
+MOVD EDX, XMM1
 SUB RAX, 8 * 10000000y	; Ponownie odejmujemy 8 przesunięć znakowych
 ADD RAX, RDX
 MOV SumaMasek, RAX
