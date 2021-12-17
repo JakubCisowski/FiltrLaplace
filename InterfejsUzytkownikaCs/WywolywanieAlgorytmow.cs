@@ -11,16 +11,16 @@ namespace SourceCs
 	public class WywolywanieAlgorytmow
 	{
 		private static volatile List<WartoscZwracana> listaWartosci;
-		
+
 		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\SourceCpp.dll")]
 		public static extern void NalozFiltrCpp(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
-		
+
 		public static async Task<byte[]> WywolajAlgorytmCpp(byte[] bitmapaTablicaBajtow, int iloscWatkow)
 		{
 			int szerokoscBitmapy = ObliczSzerokoscBitmapy(bitmapaTablicaBajtow);
 			byte[] bitmapaBezNaglowka = UsunNaglowekZBitmapy(bitmapaTablicaBajtow);
 			InicjalizujWartosciZwracane(bitmapaBezNaglowka.Length, iloscWatkow);
-			
+
 			var listaWatkow = new List<Thread>();
 
 			int indeksStartowy = 0;
@@ -103,7 +103,7 @@ namespace SourceCs
 		}
 
 		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\DllAsm.dll")]
-		public static extern void NalozFiltrAsm(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
+		public static extern void NalozFiltrAsm(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, IntPtr tablicaPomocniczaR, IntPtr tablicaPomocniczaG, IntPtr tablicaPomocniczaB, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
 		public static async Task<byte[]> WywolajAlgorytmAsm(byte[] bitmapaTablicaBajtow, int iloscWatkow)
 		{
@@ -125,17 +125,27 @@ namespace SourceCs
 				{
 					var czescTablicyWyjsciowej = new byte[wartoscZwracana.IloscFiltrowanychIndeksow];
 					var kopiaBitmapyWejsciowej = new byte[bitmapaBezNaglowka.Length];
+					var tablicaPomocniczaR = new byte[9];
+					var tablicaPomocniczaG = new byte[9];
+					var tablicaPomocniczaB = new byte[9];
+
 					Array.Copy(bitmapaBezNaglowka, 0, kopiaBitmapyWejsciowej, 0, bitmapaBezNaglowka.Length);
 
 					unsafe
 					{
 						fixed (byte* wskaznikNaTabliceWejsciowa = &kopiaBitmapyWejsciowej[0])
 						fixed (byte* wskaznikNaTabliceWyjsciowa = &czescTablicyWyjsciowej[0])
+						fixed (byte* wskaznikNaR = &tablicaPomocniczaR[0])
+						fixed (byte* wskaznikNaG = &tablicaPomocniczaG[0])
+						fixed (byte* wskaznikNaB = &tablicaPomocniczaB[0])
 						{
 							var intPtrNaTabliceWejsciowa = new IntPtr(wskaznikNaTabliceWejsciowa);
 							var intPtrNaTabliceWyjsciowa = new IntPtr(wskaznikNaTabliceWyjsciowa);
+							var intPtrNaR = new IntPtr(wskaznikNaR);
+							var intPtrNaG = new IntPtr(wskaznikNaG);
+							var intPtrNaB = new IntPtr(wskaznikNaB);
 
-							NalozFiltrAsm(intPtrNaTabliceWejsciowa, intPtrNaTabliceWyjsciowa, kopiaBitmapyWejsciowej.Length, szerokoscBitmapy, startowy, wartoscZwracana.IloscFiltrowanychIndeksow);
+							NalozFiltrAsm(intPtrNaTabliceWejsciowa, intPtrNaTabliceWyjsciowa, intPtrNaR, intPtrNaG, intPtrNaB, kopiaBitmapyWejsciowej.Length, szerokoscBitmapy, startowy, wartoscZwracana.IloscFiltrowanychIndeksow);
 
 							Marshal.Copy(intPtrNaTabliceWyjsciowa, wartoscZwracana.TablicaWyjsciowa, 0, wartoscZwracana.IloscFiltrowanychIndeksow);
 						}
@@ -166,7 +176,7 @@ namespace SourceCs
 
 			return bitmapaWyjsciowaZNaglowkiem;
 		}
-		
+
 		private static void InicjalizujWartosciZwracane(int rozmiarTablicyWejsciowej, int iloscWatkow)
 		{
 			listaWartosci = new List<WartoscZwracana>();

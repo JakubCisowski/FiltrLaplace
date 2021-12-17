@@ -3,19 +3,13 @@
 
 ; Zmienne
 
-Maski QWORD 9 DUP (0)
-WskaznikNaWejsciowaTablice QWORD 0
-WskaznikNaWyjsciowaTablice QWORD 0
-DlugoscBitmapy QWORD 0
-SzerokoscBitmapy QWORD 0
-IndeksStartowy QWORD 0
-IleIndeksowFiltrowac QWORD 0
-
-TablicaR QWORD 9 DUP (0)
-TablicaG QWORD 9 DUP (0)
-TablicaB QWORD 9 DUP (0)
+Maski BYTE 9 DUP (?)
+SumaMasek QWORD ?
+PrzesuniecieZnakow BYTE 16 DUP (10000000y)	; Znak znajduje się na pierwszym bicie od lewej
 
 .CODE
+
+; Kod źródłowy procedur
 
 DllEntry PROC hInstDLL:DWORD, reason:DWORD, reserved1:DWORD
 mov	eax, 1 
@@ -23,23 +17,24 @@ ret
 DllEntry ENDP
 
 SumujMaski PROC
-; Procedura sumująca maski.
+; Procedura sumująca maski do zmiennej SumaMasek.
 
-PUSH RCX
+PUSH RAX
 PUSH RDX
-XOR RAX, RAX
-MOV RDX, 9
-LEA RCX, Maski
-SUMUJMASKIPETLA:
-ADD RAX, QWORD PTR [RCX]
-DEC RDX
-CMP RDX, 0
-JE SUMUJMASKIKONIEC
-ADD RCX, 8
-JMP SUMUJMASKIPETLA
-SUMUJMASKIKONIEC:
+XOR RDX, RDX
+;! Wykorzystane instrukcje wektorowe - MOVQ (MMX), PSADBW (SSE2)
+MOVQ xmm0, QWORD PTR [Maski]
+MOVSX EAX, BYTE PTR [Maski+8]
+MOVDQU xmm2, xmmword ptr [PrzesuniecieZnakow]
+PXOR xmm0, xmm2
+PXOR xmm1, xmm1
+PSADBW xmm1, xmm0
+MOVD EDX, xmm1
+SUB RAX, 8 * 10000000y	; Ponownie odejmujemy 8 przesunięć znakowych
+ADD RAX, RDX
+MOV SumaMasek, RAX
 POP RDX
-POP RCX
+POP RAX
 RET
 
 SumujMaski ENDP
@@ -50,15 +45,15 @@ InicjalizujMaski PROC
 
 PUSH RCX
 LEA RCX, Maski
-MOV QWORD PTR [RCX], 0
-MOV QWORD PTR [RCX + 16], 0
-MOV QWORD PTR [RCX + 48], 0
-MOV QWORD PTR [RCX + 64], 0
-MOV QWORD PTR [RCX + 8], -1
-MOV QWORD PTR [RCX + 24], -1
-MOV QWORD PTR [RCX + 40], -1
-MOV QWORD PTR [RCX + 56], -1
-MOV QWORD PTR [RCX + 32], 4
+MOV BYTE PTR [RCX], 0
+MOV BYTE PTR [RCX+2], 0
+MOV BYTE PTR [RCX+6], 0
+MOV BYTE PTR [RCX+8], 0
+MOV BYTE PTR [RCX+1], -1
+MOV BYTE PTR [RCX+3], -1
+MOV BYTE PTR [RCX+5], -1
+MOV BYTE PTR [RCX+7], -1
+MOV BYTE PTR [RCX+4], 4
 POP RCX
 RET
 
@@ -114,7 +109,7 @@ MOV R10, RBX
 IMUL R10, 3
 ADD R10, RCX	; R10 = 3 * y + x
 MOVZX RDX, BYTE PTR [R8 + R10]
-MOV R11, QWORD PTR [R9 + 8 * R10]
+MOVSX R11, BYTE PTR [R9 + R10]
 IMUL RDX, R11	
 ADD RAX, RDX	; sumujemy wartość piksela
 INC RCX
@@ -124,10 +119,7 @@ INC RBX
 JMP OBLICZPETLAZEWN
 OBLICZKONIEC:
 CALL Clamp
-MOV R8, RAX
-CALL SumujMaski
-MOV RBX, RAX	; suma masek w RBX
-MOV RAX, R8		; wartość piksela w RAX
+MOV RBX, SumaMasek	; suma masek w RBX
 CMP RBX, 0
 JNE OBLICZPODZIELPRZEZSUME
 JMP OBLICZKONIECKONIEC
@@ -152,121 +144,132 @@ NalozFiltrAsm PROC
 ; Parametry procedury:
 ; wskaznikNaWejsciowaTablice - zapisany do RCX
 ; wskaznikNaWyjsciowaTablice - zapisany do RDX
-; dlugoscBitmapy - zapisany do R8
-; szerokoscBitmapy - zapisany do R9
-; indeksStartowy - piąty parametr na stosie
-; ileIndeksowFiltrowac - szósty parametr na stosie
+; tablicaPomocniczaR - zapisany do R8
+; tablicaPomocniczaG - zapisany do R9
+; tablicaPomocniczaB - piąty parametr na stosie
+; dlugoscBitmapy - szósty parametr na stosie
+; szerokoscBitmapy - siódmy parametr na stosie
+; indeksStartowy - ósmy parametr na stosie
+; ileIndeksowFiltrowac - dziewiąty parametr na stosie
 ; Procedura nie zwraca wyniku (wynik odczytywany jest za pomocą jednego ze wskaźników wyjściowych).
 
-MOV WskaznikNaWejsciowaTablice, RCX
-MOV WskaznikNaWyjsciowaTablice, RDX
-MOV DlugoscBitmapy, R8
-MOV SzerokoscBitmapy, R9
-MOV RAX, QWORD PTR [RSP + 40]
-MOV IndeksStartowy, RAX
-MOV RAX, QWORD PTR [RSP + 48]
-MOV IleIndeksowFiltrowac, RAX
-XOR R8, R8	; czyścimy wszystkie rejestry
+; Przenosimy parametry do rejestrów
+MOV R11, RCX	; R11 - wskaznikNaWejsciowaTablice
+MOV R12, RDX	; R12 - wskaznikNaWyjsciowaTablice
+MOV R13, R8	; R13 - tablicaPomocniczaR
+MOV R14, R9	; R14 - tablicaPomocniczaG
+MOV R15, QWORD PTR [RSP+40]	; R15 - tablicaPomocniczaB
+XOR R8, R8
 XOR R9, R9
-XOR R10, R10
-XOR R11, R11
-XOR R12, R12
-XOR R13, R13
-XOR R14, R14
-XOR R15, R15
 JMP STARTGLOWNEJPETLI
 STARTGLOWNEJPETLI:
 CALL InicjalizujMaski
-MOV R8, IndeksStartowy	; R8 = i
+CALL SumujMaski
+MOV R8, QWORD PTR [RSP+64]	; R8 = i
 GLOWNAPETLA:		
-MOV R9, SzerokoscBitmapy ; R9 = szerokość bimapy
+MOV R9, QWORD PTR [RSP+56]
 CMP R8, R9	; pierwszy rząd bitmapy (pomijamy)
 JL KONIECGLOWNEJPETLI
-MOV RAX, R8	; lewa krawędź bitmapy - RAX = RAX / RCX, RDX = RAX % RCX
+MOV RAX, R8	; lewa krawędź bitmapy - RAX = RAX / RCX, RDX = RAX % RCX (pomijamy)
 XOR RDX, RDX
-MOV RCX, SzerokoscBitmapy
+MOV RCX, QWORD PTR [RSP+56]
 DIV RCX
 cmp RDX, 0
 JE KONIECGLOWNEJPETLI
-MOV RCX, DlugoscBitmapy ; ostatni rząd bitmapy
-SUB RCX, SzerokoscBitmapy
+MOV RCX, QWORD PTR [RSP+48] ; ostatni rząd bitmapy (pomijamy)
+SUB RCX, QWORD PTR [RSP+56]
 CMP R8, RCX
 JGE KONIECGLOWNEJPETLI
-MOV RAX, R8		; prawa krawędź bitmapy - RAX = RAX / RCX, RDX = RAX % RCX
+MOV RAX, R8		; prawa krawędź bitmapy - RAX = RAX / RCX, RDX = RAX % RCX (pomijamy)
 ADD RAX, 2
 INC RAX
 XOR RDX, RDX
-MOV RCX, SzerokoscBitmapy
+MOV RCX, QWORD PTR [RSP+56]
 DIV RCX
 CMP RDX, 0	
 JE KONIECGLOWNEJPETLI
+
+XOR R9, R9
+
+PETLAZEWNETRZNA:		; R9 = y
 XOR R10, R10
-PETLAZEWNETRZNA:		; R10 = y
-XOR R11, R11
-CMP R10, 3
+CMP R9, 3
 JE KONIECPODWOJNEJPETLI
 JMP PETLAWEWNETRZNA
-PETLAWEWNETRZNA:		; R11 = x
-MOV R12, R11
-DEC R12
-IMUL R12, 3
-MOV RAX, R10
+
+PETLAWEWNETRZNA:		; R10 = x
+MOV RCX, R10
+DEC RCX
+IMUL RCX, 3
+
+MOV RAX, R9
 DEC RAX
-IMUL RAX, SzerokoscBitmapy
-ADD R12, RAX
-ADD R12, R8
-MOV R13, R10
-IMUL R13, 3
-ADD R13, R11
-MOV RBX, WskaznikNaWejsciowaTablice
-MOV R14B, BYTE PTR [RBX + R12]
-LEA RAX, TablicaR
-MOV BYTE PTR [RAX + R13], R14B
-INC R12	
-MOV RBX, WskaznikNaWejsciowaTablice
-MOV R14B, BYTE PTR [RBX + R12]
-LEA RAX, TablicaG
-MOV BYTE PTR [RAX + R13], R14B
-INC R12
-MOV RBX, WskaznikNaWejsciowaTablice
-MOV R14B, BYTE PTR [RBX + R12]
-LEA RAX, TablicaB
-MOV BYTE PTR [RAX + R13], R14B
-INC R11
-CMP R11, 3
-JNE PETLAWEWNETRZNA
+IMUL RAX, QWORD PTR [RSP+56]	; szerokosc bitmapy
+
+ADD RCX, RAX
+ADD RCX, R8
+
+MOV RDX, R9
+IMUL RDX, 3
+ADD RDX, R10
+
+MOV AL, BYTE PTR [R11 + RCX]	; R11 - wskaźnik na wejściową tablicę, RCX zawiera obliczony indeks piksela
+
+MOV BYTE PTR [R13 + RDX], AL	; R13 - wskaźnik na tablicę R, RDX zawiera obliczony indeks w tej tablicy
+
+INC RCX	
+
+MOV AL, BYTE PTR [R11 + RCX]
+
+MOV BYTE PTR [R14 + RDX], AL	; R14 - wskaźnik na tablicę G
+
+INC RCX
+
+MOV AL, BYTE PTR [R11 + RCX]
+
+MOV BYTE PTR [R15 + RDX], AL	; R15 - wskaźnik na tablicę B
+
 INC R10
+CMP R10, 3
+JNE PETLAWEWNETRZNA
+
+INC R9
 JMP PETLAZEWNETRZNA
+
 KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela znajdują się w dolnym bajcie rejestru RAX (->AL)
-LEA RCX, TablicaR
+
+MOV RCX, R13
 CALL ObliczNowaWartoscPiksela
+
 MOV RDX, R8
-SUB RDX, IndeksStartowy
-MOV R15B, AL
-MOV RCX, WskaznikNaWyjsciowaTablice
-MOV BYTE PTR [RCX + RDX], R15B
-LEA RCX, TablicaG
+SUB RDX, QWORD PTR [RSP+64]
+
+MOV BYTE PTR [R12 + RDX], AL
+
+MOV RCX, R14
 CALL ObliczNowaWartoscPiksela
+
 MOV RDX, R8
-SUB RDX, IndeksStartowy
+SUB RDX, QWORD PTR [RSP+64]
 INC RDX
-MOV R15B, AL
-MOV RCX, WskaznikNaWyjsciowaTablice
-MOV BYTE PTR [RCX + RDX], R15B
-LEA RCX, TablicaB
+
+MOV BYTE PTR [R12 + RDX], AL
+
+MOV RCX, R15
 CALL ObliczNowaWartoscPiksela
+
 MOV RDX, R8
-SUB RDX, IndeksStartowy
+SUB RDX, QWORD PTR [RSP+64]
 INC RDX
 INC RDX
-MOV R15B, AL
-MOV RCX, WskaznikNaWyjsciowaTablice
-MOV BYTE PTR [RCX + RDX], R15B
+
+MOV BYTE PTR [R12 + RDX], AL
+
 JMP KONIECGLOWNEJPETLI
 KONIECGLOWNEJPETLI:
 ADD R8, 3
-MOV RAX, IndeksStartowy
-ADD RAX, IleIndeksowFiltrowac
+MOV RAX, QWORD PTR [RSP+64]
+ADD RAX, QWORD PTR [RSP+72]
 CMP R8, RAX
 JL GLOWNAPETLA
 JMP KONIEC
