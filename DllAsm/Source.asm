@@ -3,8 +3,8 @@
 
 ; Zmienne
 
-Maski BYTE 9 DUP (?)
-SumaMasek QWORD ?
+Maski BYTE 9 DUP (?) ; Maski filtru
+SumaMasek QWORD ? ; Suma masek
 PrzesuniecieZnakow BYTE 16 DUP (10000000y)	; Znak znajduje się na pierwszym bicie od lewej
 
 .CODE

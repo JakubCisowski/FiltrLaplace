@@ -1,4 +1,12 @@
-﻿<Application x:Class="InterfejsUzytkownikaCs.App"
+﻿<!-- Temat: Algorytm na bitmapie - filtrowanie Laplace (LAPL1). -->
+<!-- Krótki opis: Algorytm filtrujący przekazaną z dysku (za pomocą graficznego UI) bitmapę za pomocą filtru Laplace (LAPL1). -->
+<!-- Data wykonania projektu: 18.12.2021 -->
+<!-- Semestr: 5 -->
+<!-- Rok akademicki: 3 -->
+<!-- Nazwisko autora: Cisowski -->
+<!-- Wersja: v1.0 -->
+
+<Application x:Class="InterfejsUzytkownikaCs.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:InterfejsUzytkownikaCs"
