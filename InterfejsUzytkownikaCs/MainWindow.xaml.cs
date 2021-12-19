@@ -37,6 +37,7 @@ namespace InterfejsUzytkownikaCs
 
 			// Domyślne ustawienie wykonania algorytmu na c++.
 			czyAsembler = false;
+			WyborCppCheckbox.IsChecked = true;
 		}
 
 		#region OBSŁUGA_CHECKBOXÓW
