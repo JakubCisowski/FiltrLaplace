@@ -125,7 +125,7 @@ extern "C" __declspec(dllexport) void __stdcall NalozFiltrCpp(unsigned char* wsk
 		unsigned char* g = new unsigned char[9];
 		unsigned char* b = new unsigned char[9];
 
-		// Sczytujemy wartości z opbszaru 3x3 wokół obecnego piksela i zapisujemy je do tablic r,g,b.
+		// Sczytujemy wartości z obszaru 3x3 wokół obecnego piksela i zapisujemy je do tablic r,g,b.
 		for (int y = 0; y < 3; y++)
 		{
 			for (int x = 0; x < 3; x++)
