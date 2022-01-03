@@ -55,19 +55,6 @@ long* InicjalizujMaski()
 	return maski;
 }
 
-// Funkcja sumująca maski które są przechowane w podanej poprzez arguent tablicy. Podana musi być również ich ilość.
-int SumujMaski(long* maski, int iloscMasek)
-{
-	int suma = 0;
-
-	for (int i = 0; i < iloscMasek; i++)
-	{
-		suma += maski[i];
-	}
-
-	return suma;
-}
-
 // Funkcja obliczająca wartość piksela na podstawie maski.
 // Parametry: fragment - tablica 3x3 która reprezentuje fragment filtrowanej bitmapy (będziemy obliczać wartość piksela w centrum)
 //			  maski - tablica 3x3 maski filtrującej
@@ -76,7 +63,6 @@ unsigned char ObliczNowaWartoscPiksela(unsigned char* fragment, long* maski)
 {
 	// Inicjalizujemy wartość piksela
 	int wartosc = 0;
-	int sumaMasek = SumujMaski(maski, 9);
 
 	// Zgodnie ze wzorem z algorytmu, na początku dodajemy do wartości skladniki wyliczone na podstawie wartosci maski i wartosci piksela)
 	for (int j = 0; j < 3; j++)
@@ -91,12 +77,6 @@ unsigned char ObliczNowaWartoscPiksela(unsigned char* fragment, long* maski)
 
 	// Na wypadek gdyby wartość wyszła poza granice (0-255), ustawiamy ją na graniczną wartość.
 	wartosc = clamp<int>(wartosc, 0, 255);
-
-	// Zgodnie z algorytmem, dzielimy otrzymaną wartość przez sumę masek.
-	if (sumaMasek != 0)
-	{
-		wartosc = (wartosc / (double)sumaMasek);
-	}
 
 	// Zwracamy wartość piksela
 	return (unsigned char)wartosc;

@@ -111,11 +111,11 @@ namespace InterfejsUzytkownikaCs
 			// Zapisanie wyniku algorytmu.
 			wynikAlgorytmu = wynik;
 
-			//#if DEBUG
-			//			File.WriteAllBytes("DebugOutput.bmp", wynikAlgorytmu);
-			//			string debugText = string.Join('\n', wynikAlgorytmu);
-			//			File.WriteAllText("DebugText.txt", debugText);
-			//#endif
+#if DEBUG
+			File.WriteAllBytes("DebugOutput.bmp", wynikAlgorytmu);
+			string debugText = string.Join('\n', wynikAlgorytmu);
+			File.WriteAllText("DebugText.txt", debugText);
+#endif
 		}
 
 		// Zdarzenie obsługujące naciśnięcie przez uzytkownika przycisku 'przeglądania plików' w celu wybrania bitmapy do przefiltrowania.

@@ -2,7 +2,6 @@
 .DATA
 ; Zmienne
 Maski BYTE 9 DUP (?) ; Maski filtru
-SumaMasek QWORD ? ; Suma masek
 PrzesuniecieZnakow BYTE 16 DUP (10000000y)	; Do sumowania masek z uwzględnieniem znaku
 
 .CODE
@@ -13,45 +12,11 @@ DllEntry PROC hInstDLL:DWORD, reason:DWORD, reserved1:DWORD
 ; Używamy jej, by zainicjalizować i zsumować maski zanim algorytm zostanie wywołany.
 
 CALL InicjalizujMaski
-CALL SumujMaski
 
 MOV	EAX, 1 ; zwracamy true
 RET
 
 DllEntry ENDP
-
-SumujMaski PROC
-; Procedura sumująca maski do zmiennej SumaMasek.
-
-; Przechowujemy wartosci w stosie na czas wywolania funkcji by nie utracic wartosci
-PUSH RAX 
-PUSH RDX
-
-XOR RDX, RDX ; zerujemy rejestr
-
-;! Wykorzystane instrukcje wektorowe - MOVQ (MMX), PSADBW (SSE2)
-MOVQ XMM0, QWORD PTR [Maski] ; zapisujemy do rejestru wektorowego wartości masek (qword - 8 bajtów)
-MOVSX EAX, BYTE PTR [Maski+8] ; dziewiąty bajt osobno, przypisujemy do EAX (rej. wek. operuja na 8 bajtach dlatego dziewiaty recznie)
-
-MOVDQU XMM2, XMMWORD PTR [PrzesuniecieZnakow] ; do XMM2 przypisujemy to przesuniecie (tablica wartosci o ile trzeba przesunac)
-
-PXOR XMM0, XMM2 ; PXOR by usunac znak, otrzymujemy w XMM0 wartosci maski bez znaku
-
-PXOR XMM1, XMM1 ; zerujemy XMM1
-PSADBW XMM1, XMM0 ; sumowanie wartosci (wlasciwie to roznic pomiedzy XMM0 - wyzerowanym XMM1)
-
-MOVD EDX, XMM1 ; zapisujemy sume do EDX
-
-SUB RAX, 8 * 10000000y	; Ponownie odejmujemy 8 przesunięć znakowych
-ADD RAX, RDX ; dodajemy do przesniecia wyliczoną sume w RDX
-MOV SumaMasek, RAX ; wpisujemy sume do zmiennej globalnej 'sumaMasek'
-
-; Przywrocenie wartosci ze stosu
-POP RDX
-POP RAX
-RET
-
-SumujMaski ENDP
 
 InicjalizujMaski PROC
 ; Procedura inicjalizująca maski.
@@ -110,47 +75,22 @@ ObliczNowaWartoscPiksela PROC
 ; 0	 201  300
 ; wyjście: (dla filtra LAPL1) = -200 - 179 - 103 - 201 + 4 * 20 < 0 -> *0*
 
-PUSH R8	; zapisujemy stos
-
-MOV R8, RCX	; adres tablicy wejściowej w R8 3x3
 
 MOVQ XMM1, QWORD PTR [Maski] ; przenosimy 8 elementow masek do wektora XMM1
-MOVQ XMM2, QWORD PTR [R8] ; przenosimy 8 elementow tablicy wartosci pikseli do wektora XMM1
+MOVDQU XMM2, XMM7 ; zapisane elementy z XMM7 do XMM2
 
 ; Wykorzystane instrukcje wektorowe: PMOVSXBW (SSE4), PMOVZXBW (SSE4), PMADDWD (MMX), PHADDD (SSE3)
 ; Konwertuja wszystkie wartosci w wektorze z 8 na 16 bitową w celu przemnożenia ich
 PMOVSXBW XMM1, XMM1		; PMOVSXBW - 1 sposob konwersji
-PMOVZXBW XMM2, XMM2    ; PMOVSXBW - 2 sposob konwersji
+;PMOVZXBW XMM2, XMM2    ; PMOVSXBW - 2 sposob konwersji
 PMADDWD	XMM1, XMM2	; PMADDWD mnoży odpowiednie elementy dwóch wektorów i sumuje je parami [8x8 parami, potem zostaje 8 i sumuje sie 1z2, 3z4 itd i zostają 4]
 PHADDD XMM1, XMM1 ; sumuje parami tą czwórkę otrzymaną wyżej - teraz sumuj 1z2 i 3z4 i zostają 2
 PHADDD XMM1, XMM1 ; sumuje pozostałe 2 i zostaje jedna wartość
 MOVD EBX, XMM1 ; zapisuje wynik (zapisany w XMM1) do EBX
 MOVSXD RAX, EBX ; przenosi do RAX
 
-MOVSX RCX, BYTE PTR [Maski+8] ; przenosimy 9 element masek do RCX
-MOVZX RBX, BYTE PTR [R8+8]; przenosimy 9 element tablicy wartosci pikseli do RBX
-IMUL RCX, RBX	; mnożenie 
-ADD RAX, RCX ; dodawanie
-
 OBLICZKONIEC:
 CALL Clamp ; clampowanie <0;255>
-MOV RBX, SumaMasek	; suma masek w RBX
-CMP RBX, 0 
-JNE OBLICZPODZIELPRZEZSUME ; != 0 -> dzielimy przez sume
-JMP OBLICZKONIECKONIEC ; skok do konca
-OBLICZPODZIELPRZEZSUME:
-; Dzielimy przez sumę masek, jeśli różna od zera
-PXOR XMM0, XMM0	; zerowanie wektora XMM0 - wartosc piksela
-;! Wykorzystane instrukcje wektorowe: PXOR (MMX), DIVSS (SSE), CVTSI2SS (SSE), CVTTSS2SI (SSE)
-CVTSI2SS XMM0, RAX	; zamieniamy int w RAX na float i zapisujemy do XMM0
-PXOR XMM1, XMM1 ; zerowanie wektora XMM1 - suma masek
-CVTSI2SS XMM1, RBX; zamieniamy int w RBX na float i zapisujemy do XMM1
-DIVSS XMM0, XMM1 ; dzielimy zmiennoprzecinkowo (wart. piks/suma masek)
-CVTTSS2SI RAX, XMM0 ; float w XMM0 konwertujemy na int i wrzucamy do RAX
-OBLICZKONIECKONIEC:
-
-POP R8 ; przywracamy stos
-
 ; wartosc zwracana jest w RAX
 RET
 
@@ -213,6 +153,9 @@ GLOWNAPETLA:
 	JE KONIECGLOWNEJPETLI ; continue
 
 	XOR R9, R9
+	PXOR xmm13, xmm13
+	PXOR xmm14, xmm14
+	PXOR xmm15, xmm15
 	; R9 = y
 PETLAZEWNETRZNA: ; // Sczytujemy wartości z obszaru 3x3 wokół obecnego piksela i zapisujemy je do tablic r,g,b.
 		; R10 = x
@@ -239,16 +182,29 @@ PETLAWEWNETRZNA:
 
 			; bierzemy z wejścia odpowiednią wartość piksela i zapisujemy ja do odpowiedniej tablicy (r/g/b)
 
+			XOR RAX, RAX
+
 			MOV AL, BYTE PTR [R11 + RCX]	; R11 - wskaźnik na wejściową tablicę, RCX zawiera obliczony indeks piksela
-			MOV BYTE PTR [R13 + RDX], AL	; R13 - wskaźnik na tablicę R, RDX zawiera obliczony indeks w tej tablicy
+
+			PSLLDQ XMM13, 2
+			MOVD XMM7, EAX
+			ADDPS XMM13, XMM7
+
 			INC RCX	; indeksPikela++
 
 			MOV AL, BYTE PTR [R11 + RCX]
-			MOV BYTE PTR [R14 + RDX], AL	; R14 - wskaźnik na tablicę G
+
+			PSLLDQ XMM14, 2
+			MOVD XMM7, EAX
+			ADDPS XMM14, XMM7
+
 			INC RCX	; indeksPikela++
 
 			MOV AL, BYTE PTR [R11 + RCX]
-			MOV BYTE PTR [R15 + RDX], AL	; R15 - wskaźnik na tablicę B
+
+			PSLLDQ XMM15, 2
+			MOVD XMM7, EAX
+			ADDPS XMM15, XMM7
 
 			INC R10 ; x++
 			CMP R10, 3 ; jesli x nie jest trojka to skaczemy do wewnetrzej spowrotem
@@ -259,7 +215,7 @@ PETLAWEWNETRZNA:
 
 KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela znajdują się w dolnym bajcie rejestru RAX (->AL)
 
-	MOV RCX, R13 ; przekazujemy R do RCX by wywolac funkcje obliczajaca
+	MOVDQU XMM7, XMM13
 	CALL ObliczNowaWartoscPiksela
 	; RDX =  indeksPikselaWyjscie = i - indeksStartowy;
 	MOV RDX, R8 
@@ -267,7 +223,7 @@ KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela 
 	; przepisujemy do tablicy R12 wyjsciowej wartosc piksela (tego co wyliczylismy) w kolorze R
 	MOV BYTE PTR [R12 + RDX], AL
 
-	MOV RCX, R14 ; przekazujemy G do RCX by wywolac funkcje obliczajaca
+	MOVDQU XMM7, XMM14
 	CALL ObliczNowaWartoscPiksela
 	; RDX =  indeksPikselaWyjscie = (i - indeksStartowy)++ ;
 	MOV RDX, R8
@@ -276,7 +232,7 @@ KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela 
 	; przepisujemy do tablicy R12 wyjsciowej wartosc piksela (tego co wyliczylismy) w kolorze G
 	MOV BYTE PTR [R12 + RDX], AL
 
-	MOV RCX, R15 ; przekazujemy B do RCX by wywolac funkcje obliczajaca
+	MOVDQU XMM7, XMM15
 	CALL ObliczNowaWartoscPiksela
 	; RDX =  indeksPikselaWyjscie = (i - indeksStartowy) + 2 ;
 	MOV RDX, R8

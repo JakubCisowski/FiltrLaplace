@@ -21,7 +21,7 @@ namespace SourceCs
 		// Lista fragmentów filtrowanej bitmapy (potrzebujemy rozbić ją na fragmenty by korzystać z wątków).
 		private static volatile List<WartoscZwracana> listaWartosci;
 
-		[DllImport(@"C:\Programowanie\_studia\JA\FiltrLaplace\x64\Debug\SourceCpp.dll")]
+		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\SourceCpp.dll")]
 		public static extern void NalozFiltrCpp(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
 		// Podstawowa procedura która wywołuje algorytm w c++ na podanej ilości wątków oraz bitmapie reprezentowanej poprzez tablicę bajtów.
@@ -125,7 +125,7 @@ namespace SourceCs
 			return szerokosc;
 		}
 
-		[DllImport(@"C:\Programowanie\_studia\JA\FiltrLaplace\x64\Debug\DllAsm.dll")]
+		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\DllAsm.dll")]
 		public static extern void NalozFiltrAsm(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, IntPtr tablicaPomocniczaR, IntPtr tablicaPomocniczaG, IntPtr tablicaPomocniczaB, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
 		// Podstawowa procedura która wywołuje algorytm w asm na podanej ilości wątków oraz bitmapie reprezentowanej poprzez tablicę bajtów.
