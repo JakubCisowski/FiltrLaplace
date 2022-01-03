@@ -126,7 +126,7 @@ namespace SourceCs
 		}
 
 		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\DllAsm.dll")]
-		public static extern void NalozFiltrAsm(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, IntPtr tablicaPomocniczaR, IntPtr tablicaPomocniczaG, IntPtr tablicaPomocniczaB, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
+		public static extern void NalozFiltrAsm(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
 		// Podstawowa procedura która wywołuje algorytm w asm na podanej ilości wątków oraz bitmapie reprezentowanej poprzez tablicę bajtów.
 		// Procedura zwraca przefiltrowaną bitmapę w postaci tablicy bajtów.
@@ -173,19 +173,13 @@ namespace SourceCs
 					{
 						fixed (byte* wskaznikNaTabliceWejsciowa = &kopiaBitmapyWejsciowej[0])
 						fixed (byte* wskaznikNaTabliceWyjsciowa = &czescTablicyWyjsciowej[0])
-						fixed (byte* wskaznikNaR = &tablicaPomocniczaR[0])
-						fixed (byte* wskaznikNaG = &tablicaPomocniczaG[0])
-						fixed (byte* wskaznikNaB = &tablicaPomocniczaB[0])
 						{
 							// Konwertujemy byte* na IntPtr.
 							var intPtrNaTabliceWejsciowa = new IntPtr(wskaznikNaTabliceWejsciowa);
 							var intPtrNaTabliceWyjsciowa = new IntPtr(wskaznikNaTabliceWyjsciowa);
-							var intPtrNaR = new IntPtr(wskaznikNaR);
-							var intPtrNaG = new IntPtr(wskaznikNaG);
-							var intPtrNaB = new IntPtr(wskaznikNaB);
 
 							// Wywołanie algorytmu.
-							NalozFiltrAsm(intPtrNaTabliceWejsciowa, intPtrNaTabliceWyjsciowa, intPtrNaR, intPtrNaG, intPtrNaB, kopiaBitmapyWejsciowej.Length, szerokoscBitmapy, startowy, wartoscZwracana.IloscFiltrowanychIndeksow);
+							NalozFiltrAsm(intPtrNaTabliceWejsciowa, intPtrNaTabliceWyjsciowa, kopiaBitmapyWejsciowej.Length, szerokoscBitmapy, startowy, wartoscZwracana.IloscFiltrowanychIndeksow);
 
 							// Kopiujemy tablicę wyjściową algorytmu do tablicy wyjściowej odpowiedniego elementu listy wartości zwracanych (fragmentów bitmapy).
 							Marshal.Copy(intPtrNaTabliceWyjsciowa, wartoscZwracana.TablicaWyjsciowa, 0, wartoscZwracana.IloscFiltrowanychIndeksow);

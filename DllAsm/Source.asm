@@ -66,7 +66,7 @@ Clamp ENDP
 ObliczNowaWartoscPiksela PROC
 ; Procedura obliczająca nową wartość piksela (tylko w jednym kolorze w ciągu jednego wywołania - R, G lub B) na podstawie pikseli ułożonych w siatkę 3x3.
 ; Na podstawie tablicy wejściowej i tablicy masek obliczane i sumowane są poszczególne wagi pikseli, a następnie nowa wartość dzielona jest przez sumę masek (jeśli różna od 0).
-; Procedura przyjmuje parametr (wskaźnik na tablicę wejściową zawierającą wartości R, G lub B z obszaru 3x3) w rejestrze RCX.
+; Procedura przyjmuje parametr (wartości R, G lub B pikseli z obszaru 3x3) w rejestrze XMM7.
 ; Procedura zwraca wartość oznaczającą nową wartość piksela środkowego w danym kolorze, w rejestrze RAX.
 ; Przykład wywołania:
 ; wejście: () oznacza piksel, dla którego liczymy nową wartość
@@ -82,7 +82,7 @@ MOVDQU XMM2, XMM7 ; zapisane elementy z XMM7 do XMM2
 ; Wykorzystane instrukcje wektorowe: PMOVSXBW (SSE4), PMOVZXBW (SSE4), PMADDWD (MMX), PHADDD (SSE3)
 ; Konwertuja wszystkie wartosci w wektorze z 8 na 16 bitową w celu przemnożenia ich
 PMOVSXBW XMM1, XMM1		; PMOVSXBW - 1 sposob konwersji
-;PMOVZXBW XMM2, XMM2    ; PMOVSXBW - 2 sposob konwersji
+;PMOVZXBW XMM2, XMM2    ; PMOVSXBW - 2 sposob konwersji - nie korzystamy, ponieważ w XMM2 zapisane są już 16-bitowe wartości
 PMADDWD	XMM1, XMM2	; PMADDWD mnoży odpowiednie elementy dwóch wektorów i sumuje je parami [8x8 parami, potem zostaje 8 i sumuje sie 1z2, 3z4 itd i zostają 4]
 PHADDD XMM1, XMM1 ; sumuje parami tą czwórkę otrzymaną wyżej - teraz sumuj 1z2 i 3z4 i zostają 2
 PHADDD XMM1, XMM1 ; sumuje pozostałe 2 i zostaje jedna wartość
@@ -101,21 +101,18 @@ NalozFiltrAsm PROC
 ; Parametry procedury:
 ; wskaznikNaWejsciowaTablice - zapisany do RCX
 ; wskaznikNaWyjsciowaTablice - zapisany do RDX
-; tablicaPomocniczaR - zapisany do R8
-; tablicaPomocniczaG - zapisany do R9
-; tablicaPomocniczaB - piąty parametr na stosie
-; dlugoscBitmapy - szósty parametr na stosie
-; szerokoscBitmapy - siódmy parametr na stosie
-; indeksStartowy - ósmy parametr na stosie
-; ileIndeksowFiltrowac - dziewiąty parametr na stosie
+; dlugoscBitmapy - zapisany do R8
+; szerokoscBitmapy - zapisany do R9
+; indeksStartowy - piąty parametr na stosie
+; ileIndeksowFiltrowac - szósty parametr na stosie
 ; Procedura nie zwraca wyniku (wynik odczytywany jest za pomocą jednego ze wskaźników wyjściowych).
 
 ; Przenosimy parametry do rejestrów
 MOV R11, RCX	; R11 - wskaznikNaWejsciowaTablice
 MOV R12, RDX	; R12 - wskaznikNaWyjsciowaTablice
-MOV R13, R8	; R13 - tablicaPomocniczaR
-MOV R14, R9	; R14 - tablicaPomocniczaG
-MOV R15, QWORD PTR [RSP+40]	; R15 - tablicaPomocniczaB
+MOV R13, R8	; R13 - dlugoscBitmapy
+MOV R14, R9	; R14 - szerokoscBitmapy
+MOV R15, QWORD PTR [RSP+40]	; R15 - indeksStartowy
 
 XOR R8, R8 ; zerujemy R8
 XOR R9, R9 ; zerujemy R9
@@ -124,22 +121,22 @@ XOR R9, R9 ; zerujemy R9
 JMP STARTGLOWNEJPETLI
 STARTGLOWNEJPETLI:
 	; R8 = i 
-	MOV R8, QWORD PTR [RSP+64]	; (wartosc poczatkowa to indeks startowy)
+	MOV R8, R15	; (wartosc poczatkowa to indeks startowy)
 
 GLOWNAPETLA:		
-	MOV R9, QWORD PTR [RSP+56] ; wrzucamy szerokość bitmapy
+	MOV R9, R14 ; wrzucamy szerokość bitmapy
 	CMP R8, R9	; pierwszy rząd bitmapy (pomijamy)
 	JL KONIECGLOWNEJPETLI ; continue
 
 	MOV RAX, R8	; lewa krawędź bitmapy - RAX = RAX / RCX, RDX = RAX % RCX (pomijamy)
 	XOR RDX, RDX
-	MOV RCX, QWORD PTR [RSP+56]
+	MOV RCX, R14
 	DIV RCX
 	CMP RDX, 0
 	JE KONIECGLOWNEJPETLI ; continue
 
-	MOV RCX, QWORD PTR [RSP+48] ; ostatni rząd bitmapy (pomijamy) -> odejmujemy dlugosc od szerokosci
-	SUB RCX, QWORD PTR [RSP+56]
+	MOV RCX, R13 ; ostatni rząd bitmapy (pomijamy) -> odejmujemy dlugosc od szerokosci
+	SUB RCX, R14
 	CMP R8, RCX
 	JGE KONIECGLOWNEJPETLI ; continue
 
@@ -147,7 +144,7 @@ GLOWNAPETLA:
 	ADD RAX, 2
 	INC RAX
 	XOR RDX, RDX
-	MOV RCX, QWORD PTR [RSP+56] ; przenosimy szerokosc bitmapy
+	MOV RCX, R14 ; przenosimy szerokosc bitmapy
 	DIV RCX ; RAX / RCX (dziel calkowite)
 	CMP RDX, 0	
 	JE KONIECGLOWNEJPETLI ; continue
@@ -171,7 +168,7 @@ PETLAWEWNETRZNA:
 			IMUL RCX, 3
 			MOV RAX, R9
 			DEC RAX
-			IMUL RAX, QWORD PTR [RSP+56]	; szerokosc bitmapy
+			IMUL RAX, R14	; szerokosc bitmapy
 			ADD RCX, RAX
 			ADD RCX, R8
 
@@ -219,7 +216,7 @@ KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela 
 	CALL ObliczNowaWartoscPiksela
 	; RDX =  indeksPikselaWyjscie = i - indeksStartowy;
 	MOV RDX, R8 
-	SUB RDX, QWORD PTR [RSP+64]
+	SUB RDX, R15
 	; przepisujemy do tablicy R12 wyjsciowej wartosc piksela (tego co wyliczylismy) w kolorze R
 	MOV BYTE PTR [R12 + RDX], AL
 
@@ -227,7 +224,7 @@ KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela 
 	CALL ObliczNowaWartoscPiksela
 	; RDX =  indeksPikselaWyjscie = (i - indeksStartowy)++ ;
 	MOV RDX, R8
-	SUB RDX, QWORD PTR [RSP+64]
+	SUB RDX, R15
 	INC RDX
 	; przepisujemy do tablicy R12 wyjsciowej wartosc piksela (tego co wyliczylismy) w kolorze G
 	MOV BYTE PTR [R12 + RDX], AL
@@ -236,7 +233,7 @@ KONIECPODWOJNEJPETLI:	; wartości zwracane z procedury ObliczNowaWartoscPiksela 
 	CALL ObliczNowaWartoscPiksela
 	; RDX =  indeksPikselaWyjscie = (i - indeksStartowy) + 2 ;
 	MOV RDX, R8
-	SUB RDX, QWORD PTR [RSP+64]
+	SUB RDX, R15
 	INC RDX
 	INC RDX
 	; przepisujemy do tablicy R12 wyjsciowej wartosc piksela (tego co wyliczylismy) w kolorze B
@@ -248,8 +245,8 @@ KONIECGLOWNEJPETLI:
 	ADD R8, 3 ; i+=3
 
 	; RAX = indeks startowy + ileElementówFiltrować
-	MOV RAX, QWORD PTR [RSP+64] 
-	ADD RAX, QWORD PTR [RSP+72]
+	MOV RAX, R15
+	ADD RAX, QWORD PTR [RSP+48]	; to juz jest zamienione
 
 	CMP R8, RAX
 	JL GLOWNAPETLA ; jeżeli i < RAX, to iterujemy dalej 
