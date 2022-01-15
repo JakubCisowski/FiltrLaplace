@@ -21,7 +21,7 @@ namespace SourceCs
 		// Lista fragmentów filtrowanej bitmapy (potrzebujemy rozbić ją na fragmenty by korzystać z wątków).
 		private static volatile List<WartoscZwracana> listaWartosci;
 
-		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\SourceCpp.dll")]
+		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Release\SourceCpp.dll")]
 		public static extern void NalozFiltrCpp(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
 		// Podstawowa procedura która wywołuje algorytm w c++ na podanej ilości wątków oraz bitmapie reprezentowanej poprzez tablicę bajtów.
@@ -125,7 +125,7 @@ namespace SourceCs
 			return szerokosc;
 		}
 
-		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Debug\DllAsm.dll")]
+		[DllImport(@"C:\Programowanie\FiltrLaplace\x64\Release\DllAsm.dll")]
 		public static extern void NalozFiltrAsm(IntPtr wskaznikNaWejsciowaTablice, IntPtr wskaznikNaWyjsciowaTablice, int dlugoscBitmapy, int szerokoscBitmapy, int indeksStartowy, int ileIndeksowFiltrowac);
 
 		// Podstawowa procedura która wywołuje algorytm w asm na podanej ilości wątków oraz bitmapie reprezentowanej poprzez tablicę bajtów.
@@ -160,11 +160,6 @@ namespace SourceCs
 					// Tworzymy dwie tablice potrzebne do poprawnego wywołania algorytmu - część tablicy (na wyjście) oraz kopię bitmapy wejściowej (bez nagłówka).
 					var czescTablicyWyjsciowej = new byte[wartoscZwracana.IloscFiltrowanychIndeksow];
 					var kopiaBitmapyWejsciowej = new byte[bitmapaBezNaglowka.Length];
-
-					// Pomocniczne tablice które będą przechowywać 9 poszczególnych pikseli R,G,B z obszaru 3x3 bitmapy w fragmencie którym liczymy wartość piksela.
-					var tablicaPomocniczaR = new byte[9];
-					var tablicaPomocniczaG = new byte[9];
-					var tablicaPomocniczaB = new byte[9];
 
 					Array.Copy(bitmapaBezNaglowka, 0, kopiaBitmapyWejsciowej, 0, bitmapaBezNaglowka.Length);
 
